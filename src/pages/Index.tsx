@@ -44,7 +44,7 @@ const Index = () => {
     }
   ];
 
-  const simulateProcessing = async () => {
+  const processWithAI = async () => {
     if (!selectedFile || schema.length === 0) {
       toast({
         title: "Missing Requirements",
@@ -58,32 +58,74 @@ const Index = () => {
     setCurrentTab('processing');
     setProgress(0);
 
-    // Simulate processing steps
-    const steps: ProcessingStep[] = ['analyzing', 'extracting', 'structuring', 'complete'];
-    
-    for (let i = 0; i < steps.length; i++) {
-      setProcessingStep(steps[i]);
+    try {
+      // Step 1: Analyzing
+      setProcessingStep('analyzing');
+      setProgress(25);
       
-      // Simulate progressive progress
-      for (let p = i * 25; p <= (i + 1) * 25; p++) {
-        setProgress(p);
-        await new Promise(resolve => setTimeout(resolve, 50));
-      }
-      
-      if (i < steps.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-    }
+      // Convert PDF to base64
+      const pdfBase64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const base64 = (reader.result as string).split(',')[1];
+          resolve(base64);
+        };
+        reader.readAsDataURL(selectedFile);
+      });
 
-    // Set mock extracted data based on schema
-    setExtractedData(mockExtractedData);
-    setIsProcessing(false);
-    setCurrentTab('preview');
-    
-    toast({
-      title: "Processing Complete",
-      description: "Successfully extracted data from your PDF document.",
-    });
+      // Step 2: Extracting
+      setProcessingStep('extracting');
+      setProgress(50);
+
+      // Call Supabase Edge Function for AI processing
+      const response = await fetch('/functions/v1/extract-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pdfBase64,
+          schema
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to process PDF');
+      }
+
+      // Step 3: Structuring
+      setProcessingStep('structuring');
+      setProgress(75);
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Processing failed');
+      }
+
+      // Step 4: Complete
+      setProcessingStep('complete');
+      setProgress(100);
+
+      setExtractedData(result.data);
+      setIsProcessing(false);
+      setCurrentTab('preview');
+      
+      toast({
+        title: "Processing Complete",
+        description: `Successfully extracted ${result.data.length} rows from your PDF document.`,
+      });
+
+    } catch (error) {
+      console.error('Processing error:', error);
+      setIsProcessing(false);
+      
+      toast({
+        title: "Processing Failed",
+        description: "Failed to process PDF. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDownload = () => {
@@ -184,7 +226,7 @@ const Index = () => {
                   <Button variant="ai-outline" onClick={() => setCurrentTab('upload')}>
                     Back to Upload
                   </Button>
-                  <Button variant="ai" onClick={simulateProcessing}>
+                  <Button variant="ai" onClick={processWithAI}>
                     Start AI Processing
                   </Button>
                 </div>
