@@ -78,10 +78,11 @@ const Index = () => {
       setProgress(50);
 
       // Call Supabase Edge Function for AI processing
-      const response = await fetch('/functions/v1/extract-pdf', {
+      const response = await fetch('https://id-preview--2871f5cc-5bf2-4f50-beef-94b001731a9c.supabase.co/functions/v1/extract-pdf', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlkLXByZXZpZXctLTI4NzFmNWNjLTViZjItNGY1MC1iZWVmLTk0YjAwMTczMWE5YyIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzM0NDQwNzE5LCJleHAiOjIwNDk5OTY3MTl9.gT6eE_jPZQpfaGLRl3c5xo2_4P6F7RkIQs7-xE3xOBU'}`,
         },
         body: JSON.stringify({
           pdfBase64,
